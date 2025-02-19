@@ -2,31 +2,24 @@ package com.talkjs.talkjs_flutter_inappwebview;
 
 import android.app.Activity;
 import android.content.Context;
-import android.net.Uri;
-import android.os.Build;
-import android.webkit.ValueCallback;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import com.talkjs.talkjs_flutter_inappwebview.chrome_custom_tabs.ChromeSafariBrowserManager;
 import com.talkjs.talkjs_flutter_inappwebview.credential_database.CredentialDatabaseHandler;
-import com.talkjs.talkjs_flutter_inappwebview.in_app_browser.InAppBrowserManager;
 import com.talkjs.talkjs_flutter_inappwebview.headless_in_app_webview.HeadlessInAppWebViewManager;
+import com.talkjs.talkjs_flutter_inappwebview.in_app_browser.InAppBrowserManager;
 import com.talkjs.talkjs_flutter_inappwebview.print_job.PrintJobManager;
 import com.talkjs.talkjs_flutter_inappwebview.proxy.ProxyManager;
 import com.talkjs.talkjs_flutter_inappwebview.service_worker.ServiceWorkerManager;
 import com.talkjs.talkjs_flutter_inappwebview.tracing.TracingControllerManager;
-
-import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.plugin.common.BinaryMessenger;
-import io.flutter.plugin.common.PluginRegistry;
-import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.platform.PlatformViewRegistry;
-import io.flutter.embedding.engine.FlutterEngine;
 
-public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityAware {
+
+
+
+public class TalkJsInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityAware {
 
   protected static final String LOG_TAG = "InAppWebViewFlutterPL";
 
@@ -39,7 +32,9 @@ public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityA
   @Nullable
   public ChromeSafariBrowserManager chromeSafariBrowserManager;
   @Nullable
-  public InAppWebViewStatic inAppWebViewStatic;
+  public NoHistoryCustomTabsActivityCallbacks noHistoryCustomTabsActivityCallbacks;
+  @Nullable
+  public InAppWebViewManager inAppWebViewManager;
   @Nullable
   public MyCookieManager myCookieManager;
   @Nullable
@@ -57,13 +52,9 @@ public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityA
   @Nullable
   public TracingControllerManager tracingControllerManager;
   @Nullable
-  public static ValueCallback<Uri> filePathCallbackLegacy;
-  @Nullable
-  public static ValueCallback<Uri[]> filePathCallback;
-
+  public ProcessGlobalConfigManager processGlobalConfigManager;
   public FlutterWebViewFactory flutterWebViewFactory;
   public Context applicationContext;
-  public PluginRegistry.Registrar registrar;
   public BinaryMessenger messenger;
   public FlutterPlugin.FlutterAssets flutterAssets;
   @Nullable
@@ -73,15 +64,7 @@ public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityA
   @SuppressWarnings("deprecation")
   public FlutterView flutterView;
 
-  public TalkJSInAppWebViewFlutterPlugin() {}
-
-  @SuppressWarnings("deprecation")
-  public static void registerWith(PluginRegistry.Registrar registrar) {
-    final TalkJSInAppWebViewFlutterPlugin instance = new TalkJSInAppWebViewFlutterPlugin();
-    instance.registrar = registrar;
-    instance.onAttachedToEngine(
-            registrar.context(), registrar.messenger(), registrar.activity(), registrar.platformViewRegistry(), registrar.view());
-  }
+  public InAppWebViewFlutterPlugin() {}
 
   @Override
   public void onAttachedToEngine(FlutterPluginBinding binding) {
@@ -105,12 +88,13 @@ public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityA
     inAppBrowserManager = new InAppBrowserManager(this);
     headlessInAppWebViewManager = new HeadlessInAppWebViewManager(this);
     chromeSafariBrowserManager = new ChromeSafariBrowserManager(this);
+    noHistoryCustomTabsActivityCallbacks = new NoHistoryCustomTabsActivityCallbacks(this);
     flutterWebViewFactory = new FlutterWebViewFactory(this);
     platformViewRegistry.registerViewFactory(
             FlutterWebViewFactory.VIEW_TYPE_ID, flutterWebViewFactory);
 
     platformUtil = new PlatformUtil(this);
-    inAppWebViewStatic = new InAppWebViewStatic(this);
+    inAppWebViewManager = new InAppWebViewManager(this);
     myCookieManager = new MyCookieManager(this);
     myWebStorage = new MyWebStorage(this);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -122,9 +106,10 @@ public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityA
     webViewFeatureManager = new WebViewFeatureManager(this);
     proxyManager = new ProxyManager(this);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-      printJobManager = new PrintJobManager();
+      printJobManager = new PrintJobManager(this);
     }
     tracingControllerManager = new TracingControllerManager(this);
+    processGlobalConfigManager = new ProcessGlobalConfigManager(this);
   }
 
   @Override
@@ -145,6 +130,10 @@ public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityA
       chromeSafariBrowserManager.dispose();
       chromeSafariBrowserManager = null;
     }
+    if (noHistoryCustomTabsActivityCallbacks != null) {
+      noHistoryCustomTabsActivityCallbacks.dispose();
+      noHistoryCustomTabsActivityCallbacks = null;
+    }
     if (myCookieManager != null) {
       myCookieManager.dispose();
       myCookieManager = null;
@@ -157,9 +146,9 @@ public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityA
       credentialDatabaseHandler.dispose();
       credentialDatabaseHandler = null;
     }
-    if (inAppWebViewStatic != null) {
-      inAppWebViewStatic.dispose();
-      inAppWebViewStatic = null;
+    if (inAppWebViewManager != null) {
+      inAppWebViewManager.dispose();
+      inAppWebViewManager = null;
     }
     if (serviceWorkerManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
       serviceWorkerManager.dispose();
@@ -181,31 +170,49 @@ public class TalkJSInAppWebViewFlutterPlugin implements FlutterPlugin, ActivityA
       tracingControllerManager.dispose();
       tracingControllerManager = null;
     }
-    filePathCallbackLegacy = null;
-    filePathCallback = null;
+    if (processGlobalConfigManager != null) {
+      processGlobalConfigManager.dispose();
+      processGlobalConfigManager = null;
+    }
   }
 
   @Override
   public void onAttachedToActivity(ActivityPluginBinding activityPluginBinding) {
     this.activityPluginBinding = activityPluginBinding;
     this.activity = activityPluginBinding.getActivity();
+
+    if (noHistoryCustomTabsActivityCallbacks != null) {
+      this.activity.getApplication().registerActivityLifecycleCallbacks(noHistoryCustomTabsActivityCallbacks.activityLifecycleCallbacks);
+    }
   }
 
   @Override
   public void onDetachedFromActivityForConfigChanges() {
-    this.activityPluginBinding = null;
-    this.activity = null;
+    if (activity != null && noHistoryCustomTabsActivityCallbacks != null) {
+      this.activity.getApplication().unregisterActivityLifecycleCallbacks(noHistoryCustomTabsActivityCallbacks.activityLifecycleCallbacks);
+    }
+
+    activityPluginBinding = null;
+    activity = null;
   }
 
   @Override
   public void onReattachedToActivityForConfigChanges(ActivityPluginBinding activityPluginBinding) {
     this.activityPluginBinding = activityPluginBinding;
     this.activity = activityPluginBinding.getActivity();
+
+    if (noHistoryCustomTabsActivityCallbacks != null) {
+      this.activity.getApplication().registerActivityLifecycleCallbacks(noHistoryCustomTabsActivityCallbacks.activityLifecycleCallbacks);
+    }
   }
 
   @Override
   public void onDetachedFromActivity() {
-    this.activityPluginBinding = null;
-    this.activity = null;
+    if (activity != null && noHistoryCustomTabsActivityCallbacks != null) {
+      this.activity.getApplication().unregisterActivityLifecycleCallbacks(noHistoryCustomTabsActivityCallbacks.activityLifecycleCallbacks);
+    }
+
+    activityPluginBinding = null;
+    activity = null;
   }
 }

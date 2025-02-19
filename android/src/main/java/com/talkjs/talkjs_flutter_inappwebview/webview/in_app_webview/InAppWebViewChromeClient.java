@@ -1,57 +1,21 @@
 package com.talkjs.talkjs_flutter_inappwebview.webview.in_app_webview;
 
-import android.Manifest;
-import android.annotation.TargetApi;
-import android.app.Activity;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Environment;
 import android.os.Message;
-import android.os.Parcelable;
-import android.provider.MediaStore;
-import android.util.Log;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
-import android.webkit.GeolocationPermissions;
 import android.webkit.JsPromptResult;
 import android.webkit.JsResult;
-import android.webkit.MimeTypeMap;
-import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
-import android.webkit.WebChromeClient;
 import android.webkit.WebView;
-import android.widget.EditText;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
-
 import com.talkjs.talkjs_flutter_inappwebview.InAppWebViewFileProvider;
-import com.talkjs.talkjs_flutter_inappwebview.R;
-import com.talkjs.talkjs_flutter_inappwebview.types.CreateWindowAction;
+import com.talkjs.talkjs_flutter_inappwebview.TalkJSInAppWebViewFlutterPlugin;
 import com.talkjs.talkjs_flutter_inappwebview.in_app_browser.ActivityResultListener;
 import com.talkjs.talkjs_flutter_inappwebview.in_app_browser.InAppBrowserDelegate;
-import com.talkjs.talkjs_flutter_inappwebview.TalkJSInAppWebViewFlutterPlugin;
+import com.talkjs.talkjs_flutter_inappwebview.types.CreateWindowAction;
 import com.talkjs.talkjs_flutter_inappwebview.types.GeolocationPermissionShowPromptResponse;
 import com.talkjs.talkjs_flutter_inappwebview.types.JsAlertResponse;
 import com.talkjs.talkjs_flutter_inappwebview.types.JsBeforeUnloadResponse;
@@ -60,7 +24,6 @@ import com.talkjs.talkjs_flutter_inappwebview.types.JsPromptResponse;
 import com.talkjs.talkjs_flutter_inappwebview.types.PermissionResponse;
 import com.talkjs.talkjs_flutter_inappwebview.types.URLRequest;
 import com.talkjs.talkjs_flutter_inappwebview.webview.WebViewChannelDelegate;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -69,7 +32,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.flutter.plugin.common.PluginRegistry;
+
+
+
 
 import static android.app.Activity.RESULT_OK;
 
@@ -125,9 +90,7 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
       this.inAppBrowserDelegate.getActivityResultListeners().add(this);
     }
 
-    if (plugin.registrar != null)
-      plugin.registrar.addActivityResultListener(this);
-    else if (plugin.activityPluginBinding != null)
+    if (plugin.activityPluginBinding != null)
       plugin.activityPluginBinding.addActivityResultListener(this);
   }
 

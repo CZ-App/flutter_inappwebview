@@ -2,30 +2,24 @@ package com.talkjs.talkjs_flutter_inappwebview;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.graphics.BitmapFactory;
 import android.graphics.Insets;
 import android.graphics.Rect;
 import android.net.http.SslCertificate;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-
 import com.talkjs.talkjs_flutter_inappwebview.types.Size2D;
 import com.talkjs.talkjs_flutter_inappwebview.types.SyncBaseCallbackResultImpl;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
+import io.flutter.plugin.common.MethodChannel;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -50,10 +44,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
-
 import javax.net.ssl.SSLHandshakeException;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-import io.flutter.plugin.common.MethodChannel;
+
+
+
+
+
 
 public class Util {
 
@@ -62,8 +61,8 @@ public class Util {
 
   private Util() {}
 
-  public static String getUrlAsset(TalkJSInAppWebViewFlutterPlugin plugin, String assetFilePath) throws IOException {
-    String key = (plugin.registrar != null) ? plugin.registrar.lookupKeyForAsset(assetFilePath) : plugin.flutterAssets.getAssetFilePathByName(assetFilePath);
+  public static String getUrlAsset(InAppWebViewFlutterPlugin plugin, String assetFilePath) throws IOException {
+    String key = plugin.flutterAssets.getAssetFilePathByName(assetFilePath);
     InputStream is = null;
     IOException e = null;
 
@@ -87,8 +86,8 @@ public class Util {
     return ANDROID_ASSET_URL + key;
   }
 
-  public static InputStream getFileAsset(TalkJSInAppWebViewFlutterPlugin plugin, String assetFilePath) throws IOException {
-    String key = (plugin.registrar != null) ? plugin.registrar.lookupKeyForAsset(assetFilePath) : plugin.flutterAssets.getAssetFilePathByName(assetFilePath);
+  public static InputStream getFileAsset(InAppWebViewFlutterPlugin plugin, String assetFilePath) throws IOException {
+    String key = plugin.flutterAssets.getAssetFilePathByName(assetFilePath);
     AssetManager mg = plugin.applicationContext.getResources().getAssets();
     return mg.open(key);
   }
@@ -108,7 +107,7 @@ public class Util {
   }
 
   @Nullable
-  public static PrivateKeyAndCertificates loadPrivateKeyAndCertificate(@NonNull TalkJSInAppWebViewFlutterPlugin plugin,
+  public static PrivateKeyAndCertificates loadPrivateKeyAndCertificate(@NonNull InAppWebViewFlutterPlugin plugin,
                                                                        @NonNull String certificatePath, 
                                                                        @Nullable String certificatePassword,
                                                                        @NonNull String keyStoreType) {
@@ -139,15 +138,13 @@ public class Util {
       }
       certificateFileStream.close();
     } catch (Exception e) {
-      e.printStackTrace();
-      Log.e(LOG_TAG, e.getMessage());
+      Log.e(LOG_TAG, "", e);
     } finally {
       if (certificateFileStream != null) {
         try {
           certificateFileStream.close();
         } catch (IOException ex) {
-          ex.printStackTrace();
-          Log.e(LOG_TAG, ex.getMessage());
+          Log.e(LOG_TAG, "", ex);
         }
       }
     }
@@ -190,8 +187,7 @@ public class Util {
     }
     catch (Exception e) {
       if (!(e instanceof SSLHandshakeException)) {
-        e.printStackTrace();
-        Log.e(LOG_TAG, e.getMessage());
+        Log.e(LOG_TAG, "", e);
       }
       if (urlConnection != null) {
         urlConnection.disconnect();
@@ -202,7 +198,7 @@ public class Util {
 
   /**
    * SslCertificate class does not has a public getter for the underlying
-   * X509Certificate, we can only do this by hack. This only works for andorid 4.0+
+   * X509Certificate, we can only do this by hack. This only works for Android 4.0+
    * https://groups.google.com/forum/#!topic/android-developers/eAPJ6b7mrmg
    */
   public static X509Certificate getX509CertFromSslCertHack(SslCertificate sslCert) {
@@ -378,5 +374,9 @@ public class Util {
       }
     }
     return null;
+  }
+
+  public static Drawable drawableFromBytes(Context context, byte[] data) {
+    return new BitmapDrawable(context.getResources(), BitmapFactory.decodeByteArray(data, 0, data.length));
   }
 }
